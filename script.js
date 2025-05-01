@@ -1,97 +1,56 @@
-// ===== 動態漸層霓虹燈背景 =====
+// ====== 動態霓虹漸層背景動畫 ======
 
-// 四組霓虹漸層顏色（紅、橘、紫、深藍）
-const gradientColors = [
-    [
-        { r: 255, g: 40,  b: 80  }, // Red
-        { r: 255, g: 140, b: 0   }, // Orange
-        { r: 180, g: 50,  b: 255 }, // Purple
-        { r: 30,  g: 40,  b: 160 }  // Deep Blue
-    ],
-    [
-        { r: 255, g: 140, b: 0   }, // Orange
-        { r: 180, g: 50,  b: 255 }, // Purple
-        { r: 30,  g: 40,  b: 160 }, // Deep Blue
-        { r: 255, g: 40,  b: 80  }  // Red
-    ],
-    [
-        { r: 180, g: 50,  b: 255 }, // Purple
-        { r: 30,  g: 40,  b: 160 }, // Deep Blue
-        { r: 255, g: 40,  b: 80  }, // Red
-        { r: 255, g: 140, b: 0   }  // Orange
-    ],
-    [
-        { r: 30,  g: 40,  b: 160 }, // Deep Blue
-        { r: 255, g: 40,  b: 80  }, // Red
-        { r: 255, g: 140, b: 0   }, // Orange
-        { r: 180, g: 50,  b: 255 }  // Purple
-    ]
+const gradients = [
+    { r: 255, g: 50,  b: 80  }, // 紅
+    { r: 255, g: 140, b: 0   }, // 橘
+    { r: 180, g: 50,  b: 255 }, // 紫
+    { r: 30,  g: 40,  b: 160 }  // 深藍
 ];
 
 const canvas = document.getElementById('bg-canvas');
 const ctx = canvas.getContext('2d');
-let width = window.innerWidth;
-let height = window.innerHeight;
 
-// 畫布自動調整
-function resizeCanvas() {
-    width = window.innerWidth;
-    height = window.innerHeight;
-    canvas.width = width;
-    canvas.height = height;
+let startTime = Date.now();
+const cycleDuration = 15000; // 15秒
+
+function lerp(a, b, t) {
+    return a + (b - a) * t;
 }
-window.addEventListener('resize', resizeCanvas);
-resizeCanvas();
 
-// 顏色補間
-function lerpColor(a, b, t) {
+function lerpColor(c1, c2, t) {
     return {
-        r: Math.round(a.r + (b.r - a.r) * t),
-        g: Math.round(a.g + (b.g - a.g) * t),
-        b: Math.round(a.b + (b.b - a.b) * t)
+        r: Math.round(lerp(c1.r, c2.r, t)),
+        g: Math.round(lerp(c1.g, c2.g, t)),
+        b: Math.round(lerp(c1.b, c2.b, t))
     };
 }
 
-// 取得補間後的漸層顏色陣列
-function getInterpolatedColors(colorsA, colorsB, t) {
-    return colorsA.map((color, i) => lerpColor(color, colorsB[i], t));
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 }
 
-// 產生canvas漸層
-function createGradient(colors) {
-    const grad = ctx.createLinearGradient(0, 0, width, height);
-    grad.addColorStop(0,    `rgb(${colors[0].r},${colors[0].g},${colors[0].b})`);
-    grad.addColorStop(0.35, `rgb(${colors[1].r},${colors[1].g},${colors[1].b})`);
-    grad.addColorStop(0.7,  `rgb(${colors[2].r},${colors[2].g},${colors[2].b})`);
-    grad.addColorStop(1,    `rgb(${colors[3].r},${colors[3].g},${colors[3].b})`);
-    return grad;
-}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
 
-// 動畫主循環
-const DURATION = 15000; // 15秒
-let lastIndex = 0;
-
-function animateGradient() {
+function animate() {
     const now = Date.now();
-    const total = gradientColors.length;
-    const cycle = Math.floor(now / DURATION);
-    const t = (now % DURATION) / DURATION;
+    const elapsed = (now - startTime) % cycleDuration;
+    const t = elapsed / cycleDuration;
 
-    // 決定目前與下一組漸層
-    const idxA = cycle % total;
-    const idxB = (cycle + 1) % total;
-    const colorsA = gradientColors[idxA];
-    const colorsB = gradientColors[idxB];
+    // 計算目前在兩個顏色間的補間
+    const segment = t * gradients.length;
+    const index1 = Math.floor(segment) % gradients.length;
+    const index2 = (index1 + 1) % gradients.length;
+    const localT = segment - Math.floor(segment);
 
-    // 插值取得目前漸層
-    const blended = getInterpolatedColors(colorsA, colorsB, t);
+    const color = lerpColor(gradients[index1], gradients[index2], localT);
 
-    // 畫背景
-    ctx.clearRect(0, 0, width, height);
-    ctx.fillStyle = createGradient(blended);
-    ctx.fillRect(0, 0, width, height);
+    // 填滿背景
+    ctx.fillStyle = `rgb(${color.r},${color.g},${color.b})`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    requestAnimationFrame(animateGradient);
+    requestAnimationFrame(animate);
 }
 
-animateGradient();
+animate();
