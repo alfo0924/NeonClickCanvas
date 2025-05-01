@@ -18,6 +18,7 @@ let shapes = [];
 let clickCount = 0;
 let lastClickTime = 0;
 let resetTimer = null;
+let fadingOut = false;
 
 function lerp(a, b, t) {
     return a + (b - a) * t;
@@ -70,6 +71,7 @@ canvas.addEventListener('pointerdown', function(e) {
 
     // 增加點擊計數
     clickCount++;
+    fadingOut = false; // 點擊時取消淡出
 
     // 根據點擊次數增加圖形數量
     for (let i = 0; i < Math.min(clickCount, 5); i++) {
@@ -93,18 +95,26 @@ canvas.addEventListener('pointerdown', function(e) {
     // 重設計時器
     lastClickTime = Date.now();
     if (resetTimer) clearTimeout(resetTimer);
-    resetTimer = setTimeout(resetShapes, 5000);
+    resetTimer = setTimeout(startFadingOut, 5000);
 });
+
+// ====== 開始淡出函數 ======
+function startFadingOut() {
+    fadingOut = true;
+}
 
 // ====== 重設函數 ======
 function resetShapes() {
     shapes = [];
     clickCount = 0;
+    fadingOut = false;
 }
 
 // ====== 繪製幾何圖形 ======
 function drawShapes() {
-    shapes.forEach((shape, index) => {
+    // 反向遍歷以正確移除元素
+    for (let i = shapes.length - 1; i >= 0; i--) {
+        const shape = shapes[i];
         ctx.save();
         ctx.globalAlpha = shape.opacity;
         ctx.translate(shape.x, shape.y);
@@ -118,11 +128,9 @@ function drawShapes() {
                 ctx.arc(0, 0, shape.size / 2, 0, Math.PI * 2);
                 ctx.fill();
                 break;
-
             case 'rect':
                 ctx.fillRect(-shape.size / 2, -shape.size / 2, shape.size, shape.size);
                 break;
-
             case 'triangle':
                 ctx.beginPath();
                 ctx.moveTo(0, -shape.size / 2);
@@ -131,41 +139,38 @@ function drawShapes() {
                 ctx.closePath();
                 ctx.fill();
                 break;
-
             case 'pentagon':
                 ctx.beginPath();
-                for (let i = 0; i < 5; i++) {
-                    const angle = (Math.PI * 2 / 5) * i - Math.PI / 2;
+                for (let j = 0; j < 5; j++) {
+                    const angle = (Math.PI * 2 / 5) * j - Math.PI / 2;
                     const px = Math.cos(angle) * shape.size / 2;
                     const py = Math.sin(angle) * shape.size / 2;
-                    if (i === 0) ctx.moveTo(px, py);
+                    if (j === 0) ctx.moveTo(px, py);
                     else ctx.lineTo(px, py);
                 }
                 ctx.closePath();
                 ctx.fill();
                 break;
-
             case 'hexagon':
                 ctx.beginPath();
-                for (let i = 0; i < 6; i++) {
-                    const angle = (Math.PI * 2 / 6) * i;
+                for (let j = 0; j < 6; j++) {
+                    const angle = (Math.PI * 2 / 6) * j;
                     const px = Math.cos(angle) * shape.size / 2;
                     const py = Math.sin(angle) * shape.size / 2;
-                    if (i === 0) ctx.moveTo(px, py);
+                    if (j === 0) ctx.moveTo(px, py);
                     else ctx.lineTo(px, py);
                 }
                 ctx.closePath();
                 ctx.fill();
                 break;
-
             case 'star':
                 ctx.beginPath();
-                for (let i = 0; i < 10; i++) {
-                    const angle = (Math.PI * 2 / 10) * i - Math.PI / 2;
-                    const radius = i % 2 === 0 ? shape.size / 2 : shape.size / 4;
+                for (let j = 0; j < 10; j++) {
+                    const angle = (Math.PI * 2 / 10) * j - Math.PI / 2;
+                    const radius = j % 2 === 0 ? shape.size / 2 : shape.size / 4;
                     const px = Math.cos(angle) * radius;
                     const py = Math.sin(angle) * radius;
-                    if (i === 0) ctx.moveTo(px, py);
+                    if (j === 0) ctx.moveTo(px, py);
                     else ctx.lineTo(px, py);
                 }
                 ctx.closePath();
@@ -187,7 +192,15 @@ function drawShapes() {
             shape.x = canvas.width / 2 + (Math.random() - 0.5) * 100;
             shape.y = canvas.height / 2 + (Math.random() - 0.5) * 100;
         }
-    });
+
+        // 如果正在淡出，逐漸降低透明度
+        if (fadingOut) {
+            shape.opacity -= 0.03;
+            if (shape.opacity <= 0) {
+                shapes.splice(i, 1);
+            }
+        }
+    }
 }
 
 function animate() {
@@ -209,6 +222,11 @@ function animate() {
 
     // 繪製所有幾何圖形
     drawShapes();
+
+    // 如果所有圖形都已淡出，重設計數
+    if (fadingOut && shapes.length === 0) {
+        resetShapes();
+    }
 
     requestAnimationFrame(animate);
 }
