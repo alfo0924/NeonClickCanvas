@@ -1,14 +1,10 @@
 html, body {
-    height: 100%;
     margin: 0;
     padding: 0;
-    overflow: hidden;
-}
-
-body {
     width: 100vw;
     height: 100vh;
-    background: #111;
+    overflow: hidden;
+    background: #000;
 }
 
 #bg-canvas {
@@ -19,5 +15,5 @@ body {
     height: 100vh;
     display: block;
     z-index: 1;
-    pointer-events: auto;
+    pointer-events: none;
 }
